@@ -1,0 +1,63 @@
+version: "3.8"
+services:
+  server:
+    image: ghcr.io/redcloud442/redis-server:prod
+    environment:
+      REDIS_PASSWORD: /run/secrets/redisPassword
+      REDIS_HOST: /run/secrets/redisHost
+      PORT: 3000
+    secrets:
+      - redisPassword
+      - redisHost
+    deploy:
+      mode: replicated
+      replicas: 3
+      update_config:
+        order: start-first
+      labels:
+        - shepherd.enable=true
+        - shepherd.auth.config=ghcr.io
+    ports:
+      - "3000:3000"
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run
+    networks:
+      - public
+    secrets:
+      - tunnelKey
+    environment:
+      - TUNNEL_TOKEN=/run/secrets/tunnelKey
+    deploy:
+      replicas: 2
+  shepherd:
+    image: containrrr/shepherd:latest
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - shepherd.enable=true
+        - shepherd.auth.config=ghcr.io
+    environment:
+      REGISTRIES_FILE: /run/secrets/shepherd-registries-auth
+      SHEPHERD_LOG_LEVEL: info
+      SHEPHERD_POLL_INTERVAL: 60
+      IMAGE_AUTO_CLEANUP: "true"
+      ROLLBACK_ON_FAILURE: "true"
+      IGNORELIST_SERVICES: shepherd cloudflared
+      UPDATE_OPTIONS: "--update-delay=30s"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    secrets:
+      - shepherd-registries-auth
+
+secrets:
+  redisPassword:
+    external: true
+  redisHost:
+    external: true
+networks:
+  public:
+    external: true
