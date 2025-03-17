@@ -1,14 +1,20 @@
-import { envConfig } from "@/env.js";
-import { compare } from "bcryptjs";
 import { Context, Next } from "hono";
+import jwt from "jsonwebtoken";
+
+const secretKey = process.env.JWT_SECRET || "";
 
 export const authMiddleware = async (c: Context, next: Next) => {
-  const token = c.req.header("Authorization") as string;
+  const token = c.req.header("Authorization")?.replace("Bearer ", "");
 
-  const comparedToken = await compare(token, envConfig.REDIS_PASSWORD);
-
-  if (!comparedToken) {
-    return c.json({ error: "Invalid Token" }, 401);
+  if (!token) {
+    return c.json({ error: "No token provided" }, 401);
   }
+
+  const code = jwt.verify(token, secretKey);
+
+  if (code !== process.env.REDIS_PASSWORD) {
+    return c.json({ access: "Unauthorized" }, 401);
+  }
+
   return next();
 };

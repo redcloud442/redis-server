@@ -4,8 +4,9 @@ import { logger } from "hono/logger";
 import { envConfig } from "./env.js";
 import { errorHandlerMiddleware } from "./middleware/error.Middleware.js";
 import route from "./route/route.js";
+import { routeMiddleware } from "./route/route.middleware.js";
 const app = new Hono();
-app.use("*", cors({
+app.use("*", routeMiddleware, cors({
     origin: [
         process.env.NODE_ENV === "development"
             ? "http://localhost:3000"

@@ -4,8 +4,8 @@ import { z } from "zod";
 config();
 
 const envSchema = z.object({
-  REDIS_HOST: z.string(),
-  REDIS_PASSWORD: z.string(),
+  REDIS_HOST: z.string().default("redis://@redis:6379"),
+  REDIS_PASSWORD: z.string().default("Blackl300!"),
   PORT: z.coerce.number().default(8080),
 });
 

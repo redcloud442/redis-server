@@ -7,9 +7,12 @@ services:
       - dbPassword
     deploy:
       mode: replicated
-      replicas: 3
+      replicas: 1
     ports:
       - "6379:6379"
+    networks:
+      - public
+      
   server:
     image: ghcr.io/redcloud442/redis-server:prod
     environment:

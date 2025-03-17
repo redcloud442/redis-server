@@ -1,14 +1,24 @@
-import { envConfig } from "@/env.js";
-import { Context } from "hono";
+import { Context, Next } from "hono";
+import jwt from "jsonwebtoken";
 
-export const routeMiddleware = (c: Context) => {
+const secretKey = process.env.JWT_SECRET || "";
+
+export const routeMiddleware = async (c: Context, next: Next) => {
   try {
-    const { password } = c.req.param();
-    if (password === envConfig.REDIS_PASSWORD) {
-      return c.json({ AUTH: ["true", "OK"] });
+    const token = c.req.header("Authorization")?.replace("Bearer ", "");
+
+    if (!token) {
+      return c.json({ error: "No token provided" }, 401);
     }
-    return c.json({ error: "Invalid password" }, 401);
+
+    const code = jwt.verify(token, secretKey);
+
+    if (code !== process.env.REDIS_PASSWORD) {
+      return c.json({ access: "Unauthorized" }, 401);
+    }
+
+    await next();
   } catch (error) {
-    return c.json({ error: "Invalid password" }, 401);
+    return c.json({ error: "Invalid token" }, 401);
   }
 };
